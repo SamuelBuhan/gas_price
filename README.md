@@ -1,38 +1,50 @@
-# À la pompe — Python edition
+# À la pompe — French fuel price dashboard
 
-A small Streamlit app that displays French fuel prices and availability from the government's open data feed, then saves observed prices in a local SQLite database. The Python lives in one file so it is easy to read and modify.
+A beginner-friendly Python and Streamlit dashboard for finding fuel stations in France. It shows current prices and reported availability on an interactive map and in a table, and keeps a local history of observed prices.
+
+## Features
+
+- Browse six fuel types: Gazole, SP95, SP98, E10, E85, and GPL.
+- View stations on an interactive map. Hover over a marker to see the station name, address, price, and availability.
+- Compare station details and prices in a table.
+- Search around a city or postal code, or allow your browser to share your current location and filter by distance.
+- Use the “Center search on my position” button to return the search to your current location.
+- Filter to stations reporting that the selected fuel is available and limit the number of displayed stations.
+- View saved price observations in a history chart. The station selector includes its name, address, and ID to distinguish stations with similar names.
+
+Location is requested by the browser. The app keeps the coordinates in the current Streamlit session only; it does not save them in the database.
 
 ## Run locally
 
 1. Install Python 3.10 or newer.
 2. Open a terminal in this folder.
-3. Install packages: `python -m pip install -r requirements.txt`
-4. Start the app: `python -m streamlit run app.py`
-5. Open the local address Streamlit prints, usually `http://localhost:8501`.
+3. Install the dependencies:
 
-## Publish from GitHub
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+4. Start the app:
 
-GitHub Pages only serves static sites and cannot run Python. Push this folder to a GitHub repository, then:
+   ```bash
+   python -m streamlit run app.py
+   ```
+5. Open the local address printed by Streamlit, usually [http://localhost:8501](http://localhost:8501).
 
-1. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/).
-2. Choose **Create app**, select your repository and branch, and set the main file path to `app.py`.
-3. Deploy. Streamlit installs packages from `requirements.txt`.
+## Data sources
 
-## How the code works
+- Live prices, station addresses, coordinates, and reported fuel availability come from the French government’s [fuel price dataset](https://www.data.gouv.fr/datasets/prix-des-carburants-en-france-flux-instantane-v2-amelioree).
+- Station brand names are supplemented from the [Chiffrex / OpenStreetMap station name reference](https://www.data.gouv.fr/datasets/referentiel-des-noms-et-enseignes-de-stations-service-enrichi-par-openstreetmap) when an official station ID matches.
+- City and postal code search uses the IGN Géoplateforme geocoder.
 
-- `load_stations()` downloads a page from the public API and caches it for ten minutes.
-- `make_table()` turns each API record into readable columns.
-- `is_fuel_available()` checks the feed's availability and rupture fields.
-- `save_prices()` records a snapshot in `fuel_history.db` (one per ten-minute window).
-- `read_history()` reads saved observations for the history chart.
-- Streamlit widgets collect filters; `st.map()` and `st.dataframe()` show the results.
+The live station feed is cached for ten minutes. The app requests the feed in pages and loads the available records before applying search filters. Prices and availability are those reported by stations and may change between updates.
 
-The history grows only while the app is running and being visited; it does not backfill older prices. Keep a copy of `fuel_history.db` to preserve local history.
+## Price history and storage
 
-## Database and online deployment
+The app creates `fuel_history.db` beside `app.py` and uses SQLite to store station details and observed prices. A station’s price is saved at most once per ten-minute interval when the app loads the live data. The history chart becomes useful after multiple observations; it does not contain prices from before the app began recording them.
 
-SQLite stores data in a simple file called `fuel_history.db`, created beside `app.py`. This is convenient for learning and for running the app on your own computer. Streamlit Community Cloud may replace its local files during a restart or redeploy, so this SQLite file is not a durable database for a public hosted service. For permanent shared history online, connect the app to a hosted PostgreSQL database such as Supabase; that needs a database account and connection secret.
+This SQLite file works for local use. On Streamlit Community Cloud, the app’s local filesystem is not guaranteed to persist across restarts or redeployments, so the hosted history can be lost. For dependable shared history in a public deployment, the app needs to be connected to a hosted database such as Supabase. That integration is not included yet. Back up `fuel_history.db` if you want to preserve local history.
 
-## Current limitation
+## Main files
 
-The app loads 100 records as a lightweight starter, not every station in France. The city filter only searches those loaded records. A full nationwide app should request records for the chosen location, or load and index all pages of the dataset, before people rely on it for trip planning.
+- `app.py` — the Streamlit app, data loading, map, filters, and SQLite history.
+- `requirements.txt` — Python packages installed locally and during deployment.
